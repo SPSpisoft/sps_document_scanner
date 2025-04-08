@@ -1,0 +1,2 @@
+E:/Users/SP-User/sps_document_scanner/example/android/app/.cxx/Debug/553z6i60/armeabi-v7a/CMakeFiles/edit_cache.dir
+E:/Users/SP-User/sps_document_scanner/example/android/app/.cxx/Debug/553z6i60/armeabi-v7a/CMakeFiles/rebuild_cache.dir

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:cunning_document_scanner/cunning_document_scanner.dart';
+import 'package:sps_document_scanner/sps_document_scanner.dart';
 
 void main() {
   runApp(const MyApp());

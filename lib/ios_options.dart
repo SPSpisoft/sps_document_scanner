@@ -17,7 +17,7 @@ enum IosImageFormat {
 /// can be used to control the quality of the resulting JPEG image. The value
 /// 0.0 represents the maximum compression (or lowest quality) while the value
 /// 1.0 represents the least compression (or best quality). Default value is 1.0.
-final class IosScannerOptions {
+class IosScannerOptions {
   /// Creates a [IosScannerOptions].
   const IosScannerOptions({
     this.imageFormat = IosImageFormat.png,

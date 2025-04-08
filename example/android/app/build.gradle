@@ -61,13 +61,15 @@ flutter {
     source '../..'
 }
 
-dependencies {}
+dependencies {
+    implementation 'com.quickbirdstudios:opencv:4.5.3.0'
+}
 
 configurations.all {
     resolutionStrategy {
         eachDependency {
             if ((requested.group == "org.jetbrains.kotlin") && (requested.name.startsWith("kotlin-stdlib"))) {
-                useVersion("1.8.0")
+                useVersion("1.8.10")
             }
         }
     }

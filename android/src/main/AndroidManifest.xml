@@ -3,9 +3,16 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13 specific permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    
     <uses-feature android:name="android.hardware.camera"
                   android:required="true" />
-    <application android:theme="@style/Theme.AppCompat.NoActionBar">
+    <application 
+        android:theme="@style/Theme.AppCompat.NoActionBar"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".fallback.DocumentScannerActivity"
             android:configChanges="orientation|screenSize"

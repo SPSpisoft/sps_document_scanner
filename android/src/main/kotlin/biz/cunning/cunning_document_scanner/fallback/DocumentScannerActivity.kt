@@ -3,8 +3,10 @@ package biz.cunning.cunning_document_scanner.fallback
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
@@ -21,9 +23,13 @@ import biz.cunning.cunning_document_scanner.fallback.models.Point
 import biz.cunning.cunning_document_scanner.fallback.models.Quad
 import biz.cunning.cunning_document_scanner.fallback.ui.ImageCropView
 import biz.cunning.cunning_document_scanner.fallback.utils.CameraUtil
+import biz.cunning.cunning_document_scanner.fallback.utils.DocumentScannerUtils
 import biz.cunning.cunning_document_scanner.fallback.utils.FileUtil
 import biz.cunning.cunning_document_scanner.fallback.utils.ImageUtil
+import biz.cunning.cunning_document_scanner.fallback.utils.OpenCVDocumentScanner
 import java.io.File
+import java.io.FileOutputStream
+import java.util.*
 /**
  * This class contains the main document scanner code. It opens the camera, lets the user
  * take a photo of a document (homework paper, business card, etc.), detects document corners,
@@ -33,6 +39,7 @@ import java.io.File
  * @constructor creates document scanner activity
  */
 class DocumentScannerActivity : AppCompatActivity() {
+    private val TAG = "DocumentScannerActivity"
     /**
      * @property maxNumDocuments maximum number of documents a user can scan at a time
      */
@@ -148,6 +155,10 @@ class DocumentScannerActivity : AppCompatActivity() {
      */
     private lateinit var imageView: ImageCropView
 
+    private var useOpenCV = false
+    private lateinit var documentScannerUtils: DocumentScannerUtils
+    private lateinit var openCVDocumentScanner: OpenCVDocumentScanner
+
     /**
      * called when activity is created
      *
@@ -156,6 +167,13 @@ class DocumentScannerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        useOpenCV = intent.getBooleanExtra("use_opencv", false)
+        documentScannerUtils = DocumentScannerUtils(this)
+        
+        if (useOpenCV) {
+            openCVDocumentScanner = OpenCVDocumentScanner(this)
+        }
+        
         // Show cropper, accept crop button, add new document button, and
         // retake photo button. Since we open the camera in a few lines, the user
         // doesn't see this until they finish taking a photo
@@ -206,11 +224,92 @@ class DocumentScannerActivity : AppCompatActivity() {
 
         // open camera, so user can snap document photo
         try {
-            openCamera()
+            startCamera()
         } catch (exception: Exception) {
             finishIntentWithError(
                 "error opening camera: ${exception.message}"
             )
+        }
+    }
+
+    private fun startCamera() {
+        try {
+            val intent = Intent(this, CameraActivity::class.java).apply {
+                putExtra("use_opencv", useOpenCV)
+            }
+            startActivityForResult(intent, CAMERA_REQUEST_CODE)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting camera", e)
+            setResult(Activity.RESULT_CANCELED)
+            finish()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        if (requestCode == CAMERA_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                val imageUri = data?.data
+                if (imageUri != null) {
+                    processImage(imageUri)
+                } else {
+                    setResult(Activity.RESULT_CANCELED)
+                    finish()
+                }
+            } else {
+                setResult(Activity.RESULT_CANCELED)
+                finish()
+            }
+        }
+    }
+
+    private fun processImage(imageUri: Uri) {
+        try {
+            val bitmap = BitmapFactory.decodeStream(contentResolver.openInputStream(imageUri))
+            if (bitmap != null) {
+                val croppedBitmap = if (useOpenCV) {
+                    openCVDocumentScanner.detectDocument(bitmap)
+                } else {
+                    documentScannerUtils.detectDocument(bitmap)
+                }
+                
+                if (croppedBitmap != null) {
+                    saveImage(croppedBitmap)
+                } else {
+                    setResult(Activity.RESULT_CANCELED)
+                    finish()
+                }
+            } else {
+                setResult(Activity.RESULT_CANCELED)
+                finish()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing image", e)
+            setResult(Activity.RESULT_CANCELED)
+            finish()
+        }
+    }
+
+    private fun saveImage(bitmap: Bitmap) {
+        try {
+            val timestamp = System.currentTimeMillis()
+            val filename = "document_$timestamp.jpg"
+            val file = File(cacheDir, filename)
+            
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+            }
+            
+            val result = Intent().apply {
+                putExtra("croppedImageResults", arrayListOf(file.absolutePath))
+            }
+            setResult(Activity.RESULT_OK, result)
+            finish()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving image", e)
+            setResult(Activity.RESULT_CANCELED)
+            finish()
         }
     }
 
@@ -373,5 +472,9 @@ class DocumentScannerActivity : AppCompatActivity() {
             Intent().putExtra("error", errorMessage)
         )
         finish()
+    }
+
+    companion object {
+        private const val CAMERA_REQUEST_CODE = 100
     }
 }
